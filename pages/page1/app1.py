@@ -1,59 +1,30 @@
+import os
 import streamlit as st
-import json
-import requests
 from langchain.memory import ConversationBufferMemory
+from config.mathutils import *
 
-API_URL = "http://localhost:11434/api/chat"
-HEADERS = {"Content-Type": "application/json"}
 
+
+# math_ui_v1() ###with no memory
+
+### Streamlit UI FINAL
 ### Initialize memory for conversation history
 if "memory" not in st.session_state:  # preserves chat history
     st.session_state.memory = ConversationBufferMemory()
 memory = st.session_state.memory
 
-### Flag to control token limiting
-limit_tokens = st.sidebar.checkbox("Limit Tokens", value=False)
+### Add flag "no_memory" for chat with 0 memory
+no_memory = st.sidebar.checkbox("No Memory", value=False)
+
+### Disable "Limit Memory" if "No Memory" is set to True
+if no_memory:
+    limit_memory = st.sidebar.checkbox("Limit Memory", value=False, disabled=True)
+else:
+    limit_memory = st.sidebar.checkbox("Limit Memory", value=True)
 
 if st.sidebar.button("New Chat"):
     st.session_state.clear()
     st.session_state.memory = ConversationBufferMemory()
-
-
-# ##without streaming api call #full response at once
-# def get_response_from_api(question):
-#     data = {
-#         "model": "phi3:mini",
-#         "messages": [{"role": "user", "content": question}],
-#         "stream": False
-#     }
-#     response = requests.post(API_URL, json=data, headers=HEADERS)
-
-#     if response.status_code == 200:
-#         return response.json().get('message', {}).get('content', 'No content')
-#     else:
-#         return f"Error: {response.status_code}"
-
-
-### Function to stream response from the API
-def stream_response(question, history):
-    data = {
-        "model": "phi3:mini",
-        "messages": history + [{"role": "user", "content": question}],
-        "stream": True,
-    }
-    response = requests.post(API_URL, json=data, headers=HEADERS, stream=True)
-
-    if response.status_code == 200:
-        response_text = ""
-        for line in response.iter_lines():
-            if line:
-                json_line = json.loads(line.decode("utf-8"))
-                content = json_line.get("message", {}).get("content", "")
-                response_text += content
-                yield response_text
-    else:
-        yield f"Error: {response.status_code}"
-
 
 ### Initialize session state for messages
 if "messages" not in st.session_state:
@@ -64,20 +35,24 @@ st.header("Math QA", anchor=False)
 ### Display chat messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+        st.code(message["content"])
 
 ### Handle user input
 if query := st.chat_input("Ask your math query"):
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
-        st.write(query)
+        st.code(query)
+        ############### #TODO: MARKDOWN RESPONSE IS NOT SUITABLE WHEN RENDERING as mathematical problems might contain symbols. .code might be suitable for user query for now.
 
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         response_text = ""
 
-        ### Get the conversation history from LangChain memory
-        conversation_history_str = memory.load_memory_variables({})["history"]
+        ### Get the conversation history from LangChain memory only if no_memory is False
+        if not no_memory:
+            conversation_history_str = memory.load_memory_variables({})["history"]
+        else:
+            conversation_history_str = ""
 
         ### Convert the conversation history string to a list of dictionaries
         conversation_history = []
@@ -96,40 +71,40 @@ if query := st.chat_input("Ask your math query"):
         previous_history = memory.load_memory_variables({})["history"]
         # print("Before updating memory, Conversation History:")
         # print(previous_history)
-        previous_conversations = (
-            len(conversation_history) // 2
-        )  ## 2 exchanges in 1 conversation
+        previous_conversations = len(conversation_history) // 2
         print(f"Number of conversations (previous): {previous_conversations}")
         print("--" * 25)
 
         ### Stream the response and update the UI
         for ast_mess in stream_response(query, conversation_history):
             response_text = ast_mess
-            message_placeholder.markdown(response_text)
+            message_placeholder.code(response_text)
+            ############### #TODO: MARKDOWN RESPONSE IS NOT SUITABLE WHEN RENDERING as mathematical problems might contain symbols like $,_, etc which is interpreted different by markdown and latex.
 
         ### Append latest response to the conversation history
         conversation_history.append({"role": "user", "content": query})
         conversation_history.append({"role": "assistant", "content": response_text})
 
         ### Limit the history if the flag is set
-        if limit_tokens and len(conversation_history) > 20:
-            conversation_history = conversation_history[-20:]
+        if not no_memory and limit_memory and len(conversation_history) > 4:
+            conversation_history = conversation_history[-4:]
 
-        ### Clear the memory and save the conversation
-        st.session_state.memory = ConversationBufferMemory()  # Clear the memory
-        memory = st.session_state.memory
+        ### Clear the memory and save the conversation if no_memory is False
+        if not no_memory:
+            st.session_state.memory = ConversationBufferMemory()  # Clear the memory
+            memory = st.session_state.memory
 
-        for i in range(0, len(conversation_history), 2):
-            user_input = conversation_history[i]["content"]
-            assistant_output = conversation_history[i + 1]["content"]
-            memory.save_context({"input": user_input}, {"output": assistant_output})
+            for i in range(0, len(conversation_history), 2):
+                user_input = conversation_history[i]["content"]
+                assistant_output = conversation_history[i + 1]["content"]
+                memory.save_context({"input": user_input}, {"output": assistant_output})
 
-        ### ### checking if history is maintained for confirmation, after update
-        current_history = memory.load_memory_variables({})["history"]
-        current_conversations = len(conversation_history) // 2
-        # print("Current Conversation History:")
-        # print(current_history)
-        print(f"Number of conversations (current): {current_conversations}")
-        print("--" * 25)
+            ### checking if history is maintained for confirmation, after update
+            current_history = memory.load_memory_variables({})["history"]
+            current_conversations = len(conversation_history) // 2
+            # print("Current Conversation History:")
+            # print(current_history)
+            print(f"Number of conversations (current): {current_conversations}")
+            print("--" * 25)
 
     st.session_state.messages.append({"role": "assistant", "content": response_text})
