@@ -82,3 +82,6 @@ def math_ui_v1():
             st.write("Please enter a question.")
 
 
+def load_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)

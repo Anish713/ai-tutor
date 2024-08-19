@@ -2,3 +2,5 @@ backup-moa
 .env
 .venv
 pages/testPages
+.ai-tutor
+*/__pycache__
