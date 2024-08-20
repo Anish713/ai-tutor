@@ -36,7 +36,7 @@ Example:
 - `python -m venv .ai-tutor` with python 3.8, or
 - `conda create -n .ai-tutor python=3.8` with anaconda.
 
-Then you can install requirements with `pip install -r requirements.txt`. Now, activate this virtual environment. Eg: `conda activate .ai-tutor` with anaconda. 
+Now, activate this virtual environment. Eg: `conda activate .ai-tutor` with anaconda. Then you can install requirements with `pip install -r requirements.txt`.
 
 <!-- #### pre-commit
 
