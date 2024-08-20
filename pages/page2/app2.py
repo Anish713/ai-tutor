@@ -1,6 +1,15 @@
 import streamlit as st
 import json
-from config.config import *
+from config.config import (
+    valid_model_names,
+    default_config,
+    layer_agent_config_def,
+    rec_config,
+    layer_agent_config_rec,
+    stream_response,
+    set_moa_agent,
+)
+from moa.agent import MOAgent
 from streamlit_ace import st_ace
 
 
@@ -30,7 +39,7 @@ with st.sidebar:
                 )
             except Exception as e:
                 st.error(f"Error updating configuration: {str(e)}")
-        
+
         new_main_model = st.selectbox(
             "Select Main Model",
             options=valid_model_names,
@@ -64,8 +73,13 @@ with st.sidebar:
             try:
                 new_layer_config = json.loads(new_layer_agent_config)
                 set_moa_agent(
-                    main_model=new_main_model,
-                    cycles=new_cycles,
+                    # main_model=new_main_model,
+                    main_model=(
+                        new_main_model
+                        if new_main_model is not None
+                        else default_config["main_model"]
+                    ),
+                    cycles=int(new_cycles),  # type: ignore
                     layer_agent_config=new_layer_config,
                     main_model_temperature=main_temperature,
                     override=True,
@@ -110,7 +124,7 @@ if query := st.chat_input("Ask a question"):
     moa_agent: MOAgent = st.session_state.moa_agent
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        ast_mess = stream_response(moa_agent.chat(query, output_format="json"))
+        ast_mess = stream_response(moa_agent.chat(query, output_format="json"))  # type: ignore
         response = st.write_stream(ast_mess)
 
     st.session_state.messages.append({"role": "assistant", "content": response})

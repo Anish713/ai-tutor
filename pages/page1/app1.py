@@ -1,12 +1,16 @@
 import os
 import streamlit as st
 from langchain.memory import ConversationBufferMemory
-from config.mathutils import *
+from config.mathutils import stream_response, load_css
 
 ### Load the custom CSS
-css_file_path = os.path.join(
-    os.path.dirname(__file__), ".\\pages\\assets\\css\\math.css"
-)  # relative path
+# css_file_path = os.path.join(
+#     os.path.dirname(__file__), ".\\pages\\assets\\css\\math.css"
+# )  # relative path
+from pathlib import Path
+
+css_file_path = Path(__file__).parent / "pages" / "assets" / "css" / "math.css"
+
 # print("Calculated path:", css_file_path)
 load_css(css_file_path)
 # load_css(r"C:\Users\Anish\Desktop\projects\AI_Tutor\pages\assets\css\math.css") ## absolute path
@@ -56,7 +60,7 @@ if query := st.chat_input("Ask your math query"):
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
         st.code(query)
-        ############### #TODO: MARKDOWN RESPONSE IS NOT SUITABLE WHEN RENDERING as mathematical problems might contain symbols. .code might be suitable for user query for now. ## Handled temporarily with custom CSS for page wrap. 
+        ############### #TODO: MARKDOWN RESPONSE IS NOT SUITABLE WHEN RENDERING as mathematical problems might contain symbols. .code might be suitable for user query for now. ## Handled temporarily with custom CSS for page wrap.
 
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
@@ -93,7 +97,7 @@ if query := st.chat_input("Ask your math query"):
         for ast_mess in stream_response(query, conversation_history):
             response_text = ast_mess
             message_placeholder.code(response_text)
-            ############### #TODO: MARKDOWN RESPONSE IS NOT SUITABLE WHEN RENDERING as mathematical problems might contain symbols like $,_, etc which is interpreted differently by markdown and latex. ## Handled temporarily with custom CSS for page wrap. 
+            ############### #TODO: MARKDOWN RESPONSE IS NOT SUITABLE WHEN RENDERING as mathematical problems might contain symbols like $,_, etc which is interpreted differently by markdown and latex. ## Handled temporarily with custom CSS for page wrap.
 
         ### Append latest response to the conversation history
         conversation_history.append({"role": "user", "content": query})
