@@ -12,17 +12,19 @@ from config.config import (
 from moa.agent import MOAgent
 from streamlit_ace import st_ace
 
-
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+if "first_input" not in st.session_state:
+    st.session_state.first_input = True  # Flag to determine if it's the first input
 
 set_moa_agent()
 
 # Sidebar for configuration
 with st.sidebar:
     st.title("MOA Configuration")
-    with st.form("Agent Configuration", border=False):
+    with st.form("Agent Configuration", clear_on_submit=False):
         if st.form_submit_button("Use Recommended Config"):
             try:
                 set_moa_agent(
@@ -73,7 +75,6 @@ with st.sidebar:
             try:
                 new_layer_config = json.loads(new_layer_agent_config)
                 set_moa_agent(
-                    # main_model=new_main_model,
                     main_model=(
                         new_main_model
                         if new_main_model is not None
@@ -93,42 +94,61 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"Error updating configuration: {str(e)}")
 
-# Main app layout
-st.header("Mixture of Agents", anchor=False)
+# # Main app layout
+# st.header("Mixture of Agents", anchor=False)
 
-with st.expander("Current MOA Configuration", expanded=False):
-    st.markdown(f"**Main Model**: ``{st.session_state.main_model}``")
-    st.markdown(f"**Main Model Temperature**: ``{st.session_state.main_temp:.1f}``")
-    st.markdown(f"**Layers**: ``{st.session_state.cycles}``")
-    st.markdown(f"**Layer Agents Config**:")
-    new_layer_agent_config = st_ace(
-        value=json.dumps(st.session_state.layer_agent_config, indent=2),
-        language="json",
-        placeholder="Layer Agent Configuration (JSON)",
-        show_gutter=False,
-        wrap=True,
-        readonly=True,
-        auto_update=True,
-    )
+# First input with code issues description
+if st.session_state.first_input:
+    with st.form("chat_input_form"):
+        code = st.text_area("Code", key="code_input")
+        error_message = st.text_area("Error Message", key="error_input")
+        st.text_area("Description", key="description_input")
 
-# Chat interface
+        if st.form_submit_button("Submit"):
+            if not code or not error_message:
+                st.warning("Code and Error Message are required for the first input.")
+            else:
+                prompt = f"""Help me debug the code by finding the issue and providing correctly working code. 
+Provided Information: 
+# CODE:
+{code}
+
+# Error Message:
+{error_message}
+
+# Description:
+{st.session_state.description_input}
+"""
+                st.session_state.first_input = False
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                moa_agent: MOAgent = st.session_state.moa_agent
+                response = "".join(moa_agent.chat(prompt))
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": response}
+                )
+                st.rerun()
+
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if query := st.chat_input("Ask a question"):
-    st.session_state.messages.append({"role": "user", "content": query})
-    with st.chat_message("user"):
-        st.write(query)
+# Follow-up questions after the first input
+if not st.session_state.first_input:
+    if query := st.chat_input("Ask a follow-up question"):
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user"):
+            st.write(query)
 
-    moa_agent: MOAgent = st.session_state.moa_agent
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        ast_mess = stream_response(moa_agent.chat(query, output_format="json"))  # type: ignore
-        response = st.write_stream(ast_mess)
+        moa_agent: MOAgent = st.session_state.moa_agent
+        response = "".join(moa_agent.chat(query))
+        with st.chat_message("assistant"):
+            st.markdown(response)
 
-    st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
-# if st.button("Back"):
-#     st.session_state.page = None
-#     exec(open("../main.py").read())
+# Option to start a new conversation
+with st.form("new_conversation"):
+    if st.form_submit_button("Start New Conversation"):
+        st.session_state.messages = []
+        st.session_state.first_input = True
+        st.rerun()

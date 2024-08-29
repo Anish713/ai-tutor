@@ -14,7 +14,7 @@ if "prev_option" not in st.session_state:
 # Select box to choose between options
 option = st.selectbox(
     "Choose an option:",
-    ["Math QA", "AI QA & Code Debugging", "Code Debugging", "AI QA"],
+    ["AI QA & Code Debugging", "Math QA", "AI QA & Code Debugging", "Code Debugging", "AI QA"],
 )
 
 # If a new option is selected, reset the session state
