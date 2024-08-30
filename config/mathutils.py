@@ -34,7 +34,7 @@ def stream_response(question, history):
     use command: `ollama serve` after setting up the model.
     """
     data = {
-        "model": "phi3_gsm8k:Q4_K_M",
+        "model": "anishstha245/phi3_gsm8k",
         # "model": "phi3_gsm8k:Q8_0",
         # "model": "phi3:mini",
         # "model": "tinyllama_gsm8k:latest",

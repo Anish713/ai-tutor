@@ -105,7 +105,7 @@ def set_moa_agent(
     main_model: str = default_config["main_model"],
     cycles: int = default_config["cycles"],
     # layer_agent_config: dict[dict[str, any]] = copy.deepcopy(layer_agent_config_def),
-    layer_agent_config: dict[str, dict[str, any]] = copy.deepcopy(layer_agent_config_def),  # type: ignore
+    layer_agent_config=copy.deepcopy(layer_agent_config_def),
     main_model_temperature: float = 0.1,
     override: bool = False,
 ):
@@ -137,7 +137,7 @@ def set_moa_agent(
 
     if override or ("moa_agent" not in st.session_state):
         st.session_state.moa_agent = MOAgent.from_config(
-            main_model=st.session_state.main_model,  # type: ignore
+            main_model=st.session_state.main_model,
             cycles=st.session_state.cycles,
             layer_agent_config=cls_ly_conf,
             temperature=st.session_state.main_temp,
