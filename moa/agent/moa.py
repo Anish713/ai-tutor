@@ -31,7 +31,7 @@ valid_model_names = Literal[
 class ResponseChunk(TypedDict):
     delta: str
     response_type: Literal["intermediate", "output"]
-    metadata: Dict = {}  # type: ignore
+    metadata: Dict
 
 
 class MOAgent:
