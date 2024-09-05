@@ -1,4 +1,4 @@
-from .RAG.Vector_store import ChunkVectorStore as cvs
+from .Vector_store import ChunkVectorStore as cvs
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
 from langchain.prompts import PromptTemplate
