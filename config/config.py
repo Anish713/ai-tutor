@@ -1,7 +1,7 @@
 import copy
 import json
 import streamlit as st
-from typing import Iterable
+from typing import Iterable, Generator
 from moa.agent.moa import ResponseChunk
 from moa.agent import MOAgent
 
@@ -64,34 +64,48 @@ layer_agent_config_rec = {
 }
 
 
+# def stream_response(messages: Iterable[ResponseChunk]):
+#     """
+#     This function shows intermediate layers response as well.
+#     Comment this function and use below same function if you want to just see final response.
+#     """
+#     layer_outputs = {}
+#     for message in messages:
+#         if message["response_type"] == "intermediate":
+#             layer = message["metadata"]["layer"]
+#             if layer not in layer_outputs:
+#                 layer_outputs[layer] = []
+#             layer_outputs[layer].append(message["delta"])
+#         else:
+#             # Display accumulated layer outputs
+#             for layer, outputs in layer_outputs.items():
+#                 st.write(f"Layer {layer}")
+#                 cols = st.columns(len(outputs))
+#                 for i, output in enumerate(outputs):
+#                     with cols[i]:
+#                         st.expander(label=f"Agent {i+1}", expanded=False).write(output)
+
+#                 # #Clear layer outputs for the next iteration
+#             layer_outputs = {}
+
+#             # Yield the main agent's output
+#             yield message["delta"]
+
+
 def stream_response(messages: Iterable[ResponseChunk]):
-    layer_outputs = {}
+    """
+    Streams only the final main agent response incrementally.
+    """
     for message in messages:
-        if message["response_type"] == "intermediate":
-            layer = message["metadata"]["layer"]
-            if layer not in layer_outputs:
-                layer_outputs[layer] = []
-            layer_outputs[layer].append(message["delta"])
-        else:  ###comment this 'else' part to not display each layer agents outputs
-            # Display accumulated layer outputs
-            for layer, outputs in layer_outputs.items():
-                st.write(f"Layer {layer}")
-                cols = st.columns(len(outputs))
-                for i, output in enumerate(outputs):
-                    with cols[i]:
-                        st.expander(label=f"Agent {i+1}", expanded=False).write(output)
-
-            #     # #Clear layer outputs for the next iteration
-            layer_outputs = {}
-
-            # Yield the main agent's output
+        if message["response_type"] == "output":
             yield message["delta"]
 
 
 def set_moa_agent(
     main_model: str = default_config["main_model"],
     cycles: int = default_config["cycles"],
-    layer_agent_config: dict[dict[str, any]] = copy.deepcopy(layer_agent_config_def),
+    # layer_agent_config: dict[dict[str, any]] = copy.deepcopy(layer_agent_config_def),
+    layer_agent_config=copy.deepcopy(layer_agent_config_def),
     main_model_temperature: float = 0.1,
     override: bool = False,
 ):
