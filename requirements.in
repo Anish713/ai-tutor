@@ -6,3 +6,8 @@ watchdog>=4.0.1
 python-dotenv>=1.0.1
 streamlit-ace>=0.1.1
 requests
+langchain-community
+pypdf
+chromadb
+fastembed
+sentence-transformers
