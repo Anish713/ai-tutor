@@ -1,15 +1,23 @@
 import requests
 import json
+import os
 import streamlit as st
+from dotenv import load_dotenv
+
+## set API_URL from .env file
+# load_dotenv()
 
 API_URL = "http://localhost:11434/api/chat"
+# API_URL = "http://ollama-container:11434/api/chat"
+
+# API_URL = os.getenv("API_URL", "http://localhost:11434/api/chat")
 HEADERS = {"Content-Type": "application/json"}
 
 
 ### without streaming api call; full response at once; can comment if not in use
 def get_response_from_api(question):
     data = {
-        "model": "phi3_gsm8k:Q4_K_M",
+        "model": "anishstha245/phi3_gsm8k",
         "messages": [{"role": "user", "content": question}],
         "stream": False,
         "options": {

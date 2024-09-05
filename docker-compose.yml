@@ -1,0 +1,33 @@
+version: '1.2'
+services:
+  ollama-container:
+    image: anishest2020/ollama_phi3_gsm8k:v1.0
+    ## image: ollama/ollama
+    volumes:
+      - "C:/Users/Anish/.ollama:/root/.ollama" ## Change "C:/Users/Anish/.ollama" to your local ollama models path, if any, else comment this.
+      # - ".:/root/.ollama" ## for persistance
+    ports:
+      - 11434:11434
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+    # command: >
+    #   pull anishstha245/phi3_gsm8k
+    networks:
+      - ai_tutor_network
+
+  streamlit-app:
+    image: anishest2020/ai_tutor_ui:v1.2
+    # build: . # If building image locally with Dockerfile 
+    ports:
+      - 8501:8501
+    env_file:
+      - .env
+    networks:
+      - ai_tutor_network
+
+networks:
+  ai_tutor_network:
+    driver: bridge

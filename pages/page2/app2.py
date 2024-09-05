@@ -109,7 +109,7 @@ if st.session_state.first_input:
                 st.warning("Code and Error Message are required for the first input.")
             else:
                 prompt = f"""Debug the code by finding the issue and providing correctly working codes. 
-                Provided Information: 
+Provided Information: 
 # Code:
 {code}
 

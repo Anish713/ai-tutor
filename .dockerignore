@@ -1,0 +1,10 @@
+*/pages/assets/images
+*/*.png
+*/.gitignore
+*/__pycache__
+*/.venv
+*/.vscode
+*/.ai-tutor
+ai-tutor-for-students
+*/.env
+requirements.in

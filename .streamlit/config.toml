@@ -1,8 +1,12 @@
 [theme]
-primaryColor="#F55036"
-backgroundColor="#FFFFFF"
-textColor="#000000"
-base="light"
+base="dark"
+primaryColor="#1E90FF"
+backgroundColor="#0E1117"
+secondaryBackgroundColor="#262730"
+textColor="#FAFAFA"
 
 [server]
-enableStaticServing = true
+enableStaticServing = false
+
+[browser]
+gatherUsageStats = false

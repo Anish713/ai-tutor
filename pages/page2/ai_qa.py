@@ -32,3 +32,9 @@ if query := st.chat_input("Ask a question"):
         response = st.write_stream(ast_mess)
 
     st.session_state.messages.append({"role": "assistant", "content": response})
+
+# Option to start a new conversation
+with st.form("new_conversation"):
+    if st.form_submit_button("Start New Conversation"):
+        st.session_state.messages = []
+        st.rerun()
