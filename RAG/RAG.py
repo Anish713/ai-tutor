@@ -44,11 +44,14 @@ class rag:
         )
 
     # Generate the response.
-    def ask(self, query: str):
+    def ask(self, query: str, context: list = None):
         if not self.chain:
             return "Could not generate"
+    
+        context_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in context]) if context else ""
+        prompt_with_context = f"{context_str}\n\nQuestion: {query}"
 
-        return self.chain.invoke(query)
+        return self.chain.invoke(prompt_with_context)
 
     # Stores the file into vector database.
     def feed(self, file_path: str):
