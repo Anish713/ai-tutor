@@ -132,7 +132,7 @@ def process_input():
 def generate_pdf(conversation_history):
   pdf = FPDF()
   pdf.add_page()
-  pdf.set_font("Arial", size = 12)
+  pdf.set_font("Arial", size = 10)
 
   for message in conversation_history:
     role = message["role"].capitalize()
