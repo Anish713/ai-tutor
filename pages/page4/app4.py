@@ -1,144 +1,71 @@
 import streamlit as st
 import tempfile
 import os
-from langchain.memory import (
-    ConversationBufferMemory,
-)  # Store and load conversation history
+from langchain.memory import ConversationBufferMemory
 from fpdf import FPDF
-
-# Import Rag classes.
 from RAG.RAG import rag
 
-
-if "assistant" not in st.session_state:
-    st.session_state["assistant"] = rag()
-
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
-
-# Initializing memory for conversation history
-if "memory" not in st.session_state:
-    st.session_state.memory = ConversationBufferMemory()
-
-memory = st.session_state.memory
-
-# Flag for disabling memory
-no_memory = st.sidebar.checkbox("No Memory", value=False)
-
-# Disable memory limit if "No Memory" is set True
-if no_memory:
-    limit_memory = st.sidebar.checkbox("Limit Memory", value=False, disabled=True)
-else:
-    limit_memory = st.sidebar.checkbox("Limit Memory", value=True)
-
-if not no_memory and limit_memory:
-    memory_limit = st.sidebar.number_input(
-        "Number of conversations to remember:", min_value=1, max_value=10, value=4
-    )
-else:
-    memory_limit = 0
-
-# New Chat button to clear chat history and memory
-if st.sidebar.button("New Chat"):
-    st.session_state["messages"] = []
-    st.session_state.memory = ConversationBufferMemory()
-
-
-# Display all messages stored in session_state
-def display_messages():
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-
-def process_local_file(local_file_path):
-    st.session_state["assistant"].clear()
-    # st.session_state.messages = []
-
-    if os.path.exists(local_file_path):
-        st.session_state["assistant"].feed(local_file_path)
-    else:
-        st.error("File not found. Please check the file path.")
-
-
-def process_file():
-    st.session_state["assistant"].clear()
-    # st.session_state.messages = []
-
-    for file in st.session_state["file_uploader"]:
-        with tempfile.NamedTemporaryFile(delete=False) as tf:
-            tf.write(file.getbuffer())
-            file_path = tf.name
-
-        with st.session_state["feeder_spinner"], st.spinner("Uploading the file"):
-            st.session_state["assistant"].feed(file_path)
-        os.remove(file_path)
-
-
-def process_input():
-
+# Initialize session state
+def initialize_session_state():
+    if "assistants" not in st.session_state:
+        st.session_state["assistants"] = {
+            "basic": rag("./chroma_db_basic"),
+            "intermediate": rag("./chroma_db_intermediate"),
+            "advanced": rag("./chroma_db_advanced")
+        }
+    if "messages" not in st.session_state:
+        st.session_state["messages"] = {"basic": [], "intermediate": [], "advanced": []}
     if "memory" not in st.session_state:
-        st.session_state.memory = ConversationBufferMemory()
-    memory = st.session_state.memory
+        st.session_state.memory = {
+            "basic": ConversationBufferMemory(),
+            "intermediate": ConversationBufferMemory(),
+            "advanced": ConversationBufferMemory()
+        }
 
-    # See if user has typed in any message and assign to prompt.
-    if prompt := st.chat_input("What can i do?"):
+# Display the messages for a particular level
+def display_messages(tab):
+    for message in st.session_state.messages[tab]:
+        with st.chat_message(message['role']):
+            st.markdown(message['content'])
+
+# Process user input and get chatbot response
+def process_input(tab):
+    memory = st.session_state.memory[tab]
+    assistant = st.session_state["assistants"][tab]
+
+    if prompt := st.chat_input(f"What can I do? ({tab} mode)"):
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.messages[tab].append({"role": "user", "content": prompt})
 
-        # Generate responnse based on the selected memory option
-        if not no_memory:
-            conversation_history_str = memory.load_memory_variables({})["history"]
-        else:
-            conversation_history_str = ""
-
+        conversation_history_str = memory.load_memory_variables({})["history"] if not no_memory else ""
         conversation_history = []
+        
         if conversation_history_str:
             for line in conversation_history_str.split("\n"):
                 if line.startswith("Human:"):
-                    conversation_history.append(
-                        {"role": "user", "content": line.replace("Human: ", "")}
-                    )
+                    conversation_history.append({"role": "user", "content": line.replace("Human: ", "")})
                 elif line.startswith("AI:"):
-                    conversation_history.append(
-                        {"role": "assistant", "content": line.replace("AI: ", "")}
-                    )
+                    conversation_history.append({"role": "assistant", "content": line.replace("AI: ", "")})
 
-        # Limit the conversation history based on the memory limit
         if limit_memory and len(conversation_history) > memory_limit * 2:
-            conversation_history = conversation_history[-memory_limit * 2 :]
+            conversation_history = conversation_history[-memory_limit * 2:]
 
-        # Generate response and write back to the chat container.
-        response = st.session_state["assistant"].ask(
-            prompt, context=conversation_history
-        )
+        response = assistant.ask(prompt, context=conversation_history)
 
         with st.chat_message("assistant"):
             st.markdown(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages[tab].append({"role": "assistant", "content": response})
 
-        # Append the latest response to the conversation history
-        conversation_history.append({"role": "user", "content": prompt})
-        conversation_history.append({"role": "assistant", "content": response})
-
-        # Update memory if memory is enabled
         if not no_memory:
-            st.session_state.memory = ConversationBufferMemory()  # Clear the memory
-            memory = st.session_state.memory
+            memory.save_context({"input": prompt}, {"output": response})
 
-            # Save the conversation history to memory
-            for i in range(0, len(conversation_history), 2):
-                user_input = conversation_history[i]["content"]
-                assistant_output = conversation_history[i + 1]["content"]
-                memory.save_context({"input": user_input}, {"output": assistant_output})
-
-
+# Function to generate PDF of the chat history
 def generate_pdf(conversation_history):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=10)
+    pdf.set_font("Arial", size=12)
 
     for message in conversation_history:
         role = message["role"].capitalize()
@@ -149,60 +76,144 @@ def generate_pdf(conversation_history):
     pdf.output(pdf_output_path)
     return pdf_output_path
 
+# Function to handle Personalized QA (currently blank)
+def personalized_learning(level):
+    assistant = st.session_state["assistants"][level]
+    st.subheader(f"Personalized Learning for {level.capitalize()} Level")
 
+    # Use the assistant to get context
+    query = "Generate detailed AI literature content for this level with comprehensive information."
+    
+    # Retrieve context (this assumes `ask` can be used for context retrieval as well)
+    st.write("Generating detailed content...")
+    context = assistant.ask(query)  # Adjust this line based on how context is retrieved in your `rag` class
+
+    # Function to generate multi-page content
+    def generate_multichunk_content(query, context, chunk_size=2000):
+        full_content = ""
+        start = 0
+        while start < len(query):
+            end = min(start + chunk_size, len(query))
+            chunk = query[start:end]
+            prompt_with_context = f"{context}\n\nContent Request: {chunk}"
+            response = assistant.ask(prompt_with_context)
+            full_content += response + "\n\n---\n\n"
+            start = end
+        return full_content
+
+    # Generate content automatically based on context and generate multi-page content
+    content = generate_multichunk_content(query, context)
+    
+    # Display the content
+    st.write(content)
+
+    # Optionally, you can add pagination or formatting here if needed
+    st.write("### Detailed Content:")
+    st.write("Here you can add functionality to paginate or format detailed content.")
+
+    # Generate content automatically based on context and generate multi-page content
+    query = "Generate detailed AI literature content for this level with comprehensive information."
+    st.write("Generating detailed content...")
+    
+    content = generate_multichunk_content(query, context)
+    
+    # Display the content
+    st.write(content)
+
+    # Optionally, you can add pagination or formatting here if needed
+    st.write("### Detailed Content:")
+    st.write("Here you can add functionality to paginate or format detailed content.")
+
+
+
+# Main function
 def main():
-    st.title("Q&A Chatbot")
+    st.title("AI Literature Assistant")
 
-    # Initialize the session_state.
-    if len(st.session_state) == 0:
-        # st.session_state["assistant"] = rag()
-        st.session_state.messages = []
-        # st.session_state.memory = ConversationBufferMemory()
+    # Initialize session state for assistants and messages
+    initialize_session_state()
 
-    local_file_path = "D:\\FuseMachine\\DataSet_RAG\\what-is-ai-v2.pdf"
-    # local_file_path = "C:\\Users\\Anish\\Desktop\\projects\\AI_Tutor(exp)\\pages\\page4\\what-is-ai-v2.pdf"
-    process_local_file(local_file_path)
+    # Page selection at the top
+    page = st.selectbox("Choose a page", ["Home", "Personalized Learning"], key="page_selector")
 
-    # Code for file upload functionality.
-    with st.sidebar:
-        st.header("Upload the data of relevent field")
-        st.file_uploader(
-            "Upload Some Relevent File If You Want",
-            type=["pdf"],
-            key="file_uploader",
-            on_change=process_file,
-            label_visibility="collapsed",
-            accept_multiple_files=True,
-        )
+    if page == "Home":
+        # Sidebar for additional features
+        with st.sidebar:
+            st.header("Options")
+            global no_memory, limit_memory, memory_limit
 
-        if st.session_state.messages:
-            last_question = next(
-                (
-                    msg["content"]
-                    for msg in reversed(st.session_state.messages)
-                    if msg["role"] == "user"
-                ),
-                None,
-            )
-            if last_question:
-                st.subheader("last Question")
-                st.markdown(f"💡 **{last_question}**")
+            # Memory and chat options
+            no_memory = st.checkbox("No Memory", value=False)
+            limit_memory = st.checkbox("Limit Memory", value=True, disabled=no_memory)
+            memory_limit = st.number_input("Number of conversations to remember:", min_value=1, max_value=10, value=4, disabled=no_memory or not limit_memory)
 
-        if st.button("Download Chat as PDF"):
-            pdf_path = generate_pdf(st.session_state.messages)
-            with open(pdf_path, "rb") as pdf_file:
-                st.download_button(
-                    label="Download PDF",
-                    data=pdf_file,
-                    file_name="conversation_history.pdf",
-                    mime="application/pdf",
-                )
+            if st.button("New Chat"):
+                st.session_state.messages = {"basic": [], "intermediate": [], "advanced": []}
+                st.session_state.memory = {
+                    "basic": ConversationBufferMemory(),
+                    "intermediate": ConversationBufferMemory(),
+                    "advanced": ConversationBufferMemory()
+                }
 
-    st.session_state["feeder_spinner"] = st.empty()
+            if st.button("Download Chat as PDF"):
+                all_messages = []
+                for tab in ["basic", "intermediate", "advanced"]:
+                    all_messages.extend(st.session_state.messages[tab])
+                pdf_path = generate_pdf(all_messages)
+                with open(pdf_path, "rb") as pdf_file:
+                    st.download_button(
+                        label="Download PDF",
+                        data=pdf_file,
+                        file_name="conversation_history.pdf",
+                        mime="application/pdf"
+                    )
 
-    display_messages()
-    process_input()
+            # File uploader for the selected level
+            selected_level = st.selectbox("Select Level for Upload", ["basic", "intermediate", "advanced"], key="level_selector")
+            uploaded_file = st.file_uploader(f"Upload {selected_level.capitalize()} Level File", type=["pdf"], key=f"file_uploader_{selected_level}")
 
+            if uploaded_file:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tf:
+                    tf.write(uploaded_file.getbuffer())
+                    file_path = tf.name
+                
+                with st.spinner(f"Uploading and processing {uploaded_file.name} for {selected_level} level"):
+                    st.session_state["assistants"][selected_level].feed(file_path)
+                
+                os.remove(file_path)
+                st.success(f"File uploaded and processed successfully for {selected_level} level!")
+
+        # Display the content based on the selected page
+        st.header("Welcome to the AI Literature Assistant")
+
+        # Tabs for different levels
+        tab1, tab2, tab3 = st.tabs(["Basic", "Intermediate", "Advanced"])
+
+        with tab1:
+            st.header("Basic Mode")
+            display_messages("basic")
+            process_input("basic")
+
+        with tab2:
+            st.header("Intermediate Mode")
+            display_messages("intermediate")
+            process_input("intermediate")
+
+        with tab3:
+            st.header("Advanced Mode")
+            display_messages("advanced")
+            process_input("advanced")
+
+    elif page == "Personalized Learning":
+        # Hide the sidebar by not rendering it
+        #st.write("This is a placeholder for the Personalized QA page.")
+        st.header("Personalized Learning Page")
+        #st.subheader("Personalized Learning")
+        with st.sidebar:
+            selected_level = st.selectbox("Select Level for Personalized Learning", ["basic", "intermediate", "advanced"])
+        
+            # Call personalized QA function (currently blank)
+        personalized_learning(selected_level)
 
 if __name__ == "__main__":
     main()
