@@ -4,6 +4,7 @@ from langchain.schema.output_parser import StrOutputParser
 from langchain.prompts import PromptTemplate
 from langchain_community.chat_models import ChatOllama
 import os
+import requests
 
 class rag:
     def __init__(self, persist_directory):
@@ -21,6 +22,7 @@ class rag:
             Answer: [/INST]
             """
         )
+
         self.model = ChatOllama(model="anishstha245/phi3_gsm8k:latest")
         
         self.vector_store = self.csv_obj.load_existing_database()
@@ -36,6 +38,30 @@ class rag:
                 "score_threshold": 0.5,
             },
         )
+    
+    
+    def get_response_from_api(self, prompt):
+        data = {
+            "model": "anishstha245/phi3_gsm8k:latest",
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+            "options": {
+               "temperature": 0.7,
+                "repeat_penalty": 1.0,
+                "seed": 3407,
+                "top_k": 50,
+                "top_p": 1.0,
+        },
+    }
+        
+        API_URL = "http://localhost:11434/api/chat"
+        HEADERS = {"Content-Type": "application/json"}
+            
+        response = requests.post(API_URL, json=data, headers=HEADERS)
+        if response.status_code == 200:
+            return response.json().get("message", {}).get("content", "No content")
+        else:
+            return f"Error: {response.status_code}"
 
     def augment(self):
         self.chain = (

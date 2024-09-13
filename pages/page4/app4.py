@@ -61,6 +61,7 @@ def process_input(tab):
         if not no_memory:
             memory.save_context({"input": prompt}, {"output": response})
 
+
 # Function to generate PDF of the chat history
 def generate_pdf(conversation_history):
     pdf = FPDF()
@@ -82,50 +83,30 @@ def personalized_learning(level):
     st.subheader(f"Personalized Learning for {level.capitalize()} Level")
 
     # Use the assistant to get context
-    query = "Generate detailed AI literature content for this level with comprehensive information."
+    #query = "Generate detailed AI literature content for this level with comprehensive information."
+
+    prompt = f'''You are an AI tutor. Teach {level} level of the AI topic in a clear and concise manner. 
+                Don't teach a lot of things at once. There should be one concept at one step. Include 
+                a brief example if appropriate. The example should be short, simple, and relevant to the concept.'''
     
-    # Retrieve context (this assumes `ask` can be used for context retrieval as well)
     st.write("Generating detailed content...")
-    context = assistant.ask(query)  # Adjust this line based on how context is retrieved in your `rag` class
+    context = assistant.get_response_from_api(prompt)  
+    st.markdown(context)
 
-    # Function to generate multi-page content
-    def generate_multichunk_content(query, context, chunk_size=2000):
-        full_content = ""
-        start = 0
-        while start < len(query):
-            end = min(start + chunk_size, len(query))
-            chunk = query[start:end]
-            prompt_with_context = f"{context}\n\nContent Request: {chunk}"
-            response = assistant.ask(prompt_with_context)
-            full_content += response + "\n\n---\n\n"
-            start = end
-        return full_content
+    understood = st.radio("Did you understand this step?", ("Select an option", "Yes", "No"))
 
-    # Generate content automatically based on context and generate multi-page content
-    content = generate_multichunk_content(query, context)
+    if understood == "Yes":
+            #st.session_state.ai_step += 1
+            st.write(f"Great! Moving next.")
+    elif understood == "No":
+            st.write("Let's review this step again with a simpler explanation.")
+            simpler_explanation = assistant.get_response_from_api(f'''Explain AI topic of {level} level in a simpler way. 
+                                                                  The student hasn't understood the step you recently taught well. 
+                                                                  Help them study well in a concise manner.''')
+            st.write(simpler_explanation)
+    else:
+            st.write("Please select an option to continue.")
     
-    # Display the content
-    st.write(content)
-
-    # Optionally, you can add pagination or formatting here if needed
-    st.write("### Detailed Content:")
-    st.write("Here you can add functionality to paginate or format detailed content.")
-
-    # Generate content automatically based on context and generate multi-page content
-    query = "Generate detailed AI literature content for this level with comprehensive information."
-    st.write("Generating detailed content...")
-    
-    content = generate_multichunk_content(query, context)
-    
-    # Display the content
-    st.write(content)
-
-    # Optionally, you can add pagination or formatting here if needed
-    st.write("### Detailed Content:")
-    st.write("Here you can add functionality to paginate or format detailed content.")
-
-
-
 # Main function
 def main():
     st.title("AI Literature Assistant")
