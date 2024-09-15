@@ -1,5 +1,5 @@
 # import streamlit as st
-from utils.mathutils import get_response_from_api
+from .mathutils import get_response_from_api
 from dotenv import load_dotenv
 
 
