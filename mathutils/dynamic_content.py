@@ -2,11 +2,14 @@ import sqlite3
 from openai import OpenAI
 import streamlit as st
 from groq import Groq
+from dotenv import load_dotenv
 from mathutils.mathutils import get_response_from_api
 import json
 import os
 
 DB_PATH = "generated_content.db"
+load_dotenv()
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 
 def create_db():
@@ -140,7 +143,7 @@ def generate_dynamic_content_groq(query, model_name=None, temperature=0.5):
 
 def generate_dynamic_content_github(query, model_name=None, temperature=0.5):
     # Set your GitHub token and endpoint
-    token = os.environ["GITHUB_TOKEN"]
+    token = GITHUB_TOKEN
     endpoint = "https://models.inference.ai.azure.com"
     model_name = model_name or "gpt-4o-mini"
 
