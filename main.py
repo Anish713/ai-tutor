@@ -2,7 +2,7 @@ import streamlit as st
 
 # Set page configuration once
 st.set_page_config(
-    page_title="AI Tutor", initial_sidebar_state="collapsed", layout="wide"
+    page_title="AI Tutor", initial_sidebar_state="expanded", layout="wide"
 )
 
 st.title("Welcome !!!")
