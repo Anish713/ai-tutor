@@ -1,4 +1,3 @@
-# Import necessary libraries
 import json
 import datetime
 import streamlit as st
@@ -90,7 +89,7 @@ def assessment_dashboard(selected_topic, selected_level, selected_lesson):
             score,
         )
 
-        if score >= 7:
+        if score >= 1:  # change threshold later
             st.success(f"**Congratulations! You scored {score}/10**", icon="🔥")
             mycode = "<script>alert('Check your feedback😀 Then, You may move to next lesson. Good Luck! ')</script>"
             components.html(mycode, height=0, width=0)
@@ -108,20 +107,22 @@ def assessment_dashboard(selected_topic, selected_level, selected_lesson):
                 st.write(
                     f"""➡️ You answered: :red[{answers[i-1]}] ❌. Correct Answer is :green[**{questions[i-1]['correct_answer']}**] ✔️"""
                 )
-
-                feedback = generate_feedback(
-                    question=questions[i - 1]["question"],
-                    student_answer=answers[i - 1],
-                    actual_answer=questions[i - 1]["correct_answer"],
-                )
-                st.info(f":green[**Feedback:**] {feedback}", icon="🚨")
-                st.divider()
+                with st.spinner("Generating Feedback..."):
+                    feedback = generate_feedback(
+                        question=questions[i - 1]["question"],
+                        student_answer=answers[i - 1],
+                        actual_answer=questions[i - 1]["correct_answer"],
+                    )
+                    st.info(f":green[**Feedback:**] {feedback}", icon="🚨")
+                    # st.markdown(f":green[**🚨 Feedback:**] :blue-background[{feedback}]")
+                    st.divider()
 
         else:
             st.write(f"You scored {score}/10 😥.")
-            st.markdown(
+            st.error(
                 ":red-background[**Please revise the provided resources 📖 and Try again...🔁**]"
             )
+            st.info("Pro Tip: Use Chatbot in sidebar to clear your confusions😎")
 
     # option to generate a new quiz
     if st.button("New Quiz"):

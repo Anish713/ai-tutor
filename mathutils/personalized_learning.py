@@ -151,7 +151,7 @@ def course_dashboard():
                 assessment_expander_key = (
                     f"{selected_topic}_{selected_level}_assessment_expander"
                 )
-                st.session_state.setdefault(assessment_expander_key, False)
+                st.session_state.setdefault(assessment_expander_key, True)
 
                 if st.button(f"Take {assessment}", key="take_assessment"):
                     st.session_state[assessment_expander_key] = True
