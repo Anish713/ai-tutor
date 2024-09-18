@@ -65,13 +65,22 @@ def process_input(tab):
 # Function to generate PDF of the chat history
 def generate_pdf(conversation_history):
     pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-
+    
     for message in conversation_history:
         role = message["role"].capitalize()
         content = message["content"]
-        pdf.cell(200, 10, txt=f"{role}: {content}", ln=True)
+        
+        # Set the role
+        pdf.set_font("Arial", 'B', size=12)
+        pdf.cell(200, 10, txt=f"{role}:", ln=True)
+        
+        # Set the content with UTF-8 characters
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(0, 10, txt=content, align="L")
+        pdf.ln(5)
 
     pdf_output_path = "conversation_history.pdf"
     pdf.output(pdf_output_path)
@@ -82,30 +91,48 @@ def personalized_learning(level):
     assistant = st.session_state["assistants"][level]
     st.subheader(f"Personalized Learning for {level.capitalize()} Level")
 
-    # Use the assistant to get context
-    #query = "Generate detailed AI literature content for this level with comprehensive information."
+    # Fetch the dynamically generated level description from the assistant's database
+    level_description = assistant.get_level_description()
 
-    prompt = f'''You are an AI tutor. Teach {level} level of the AI topic in a clear and concise manner. 
-                Don't teach a lot of things at once. There should be one concept at one step. Include 
-                a brief example if appropriate. The example should be short, simple, and relevant to the concept.'''
+    # Include the level description in the prompt
+    prompt = f'''
+    You are an AI tutor. You are teaching the {level.capitalize()} level of AI.
+    Here's an overview of this level to guide your teaching:
+
+    "{level_description}"
+
+    Teach the {level} level of the AI topic in a clear and concise manner. Focus on one concept at a time. 
+    Include a brief example if appropriate. The example should be short, simple, and relevant to the concept.
+    Make sure to adjust your explanations to the student's level of understanding.
+    '''
     
+    # Display the prompt for debugging purposes (optional)
+    #st.write("Prompt being used for content generation:")
+    #st.markdown(f"```{prompt}```")
+
+    # Generating the personalized content
     st.write("Generating detailed content...")
-    context = assistant.get_response_from_api(prompt)  
+    context = assistant.get_response_from_api(prompt)
     st.markdown(context)
 
-    understood = st.radio("Did you understand this step?", ("Select an option", "Yes", "No"))
+    
+
+    understood = st.selectbox("Did you understand this step?", ("choose", "Yes", "No"), index = 0)
 
     if understood == "Yes":
-            #st.session_state.ai_step += 1
-            st.write(f"Great! Moving next.")
+        #yes_ans = context + f"The student has understood the step you recently taught. Now dive deep into this topic and generate another content related to this level topic."
+        st.write("Great! Moving to the next step.")
+        next_explanation = assistant.get_response_from_api(f"dive deeper on each topics of {level_description}")
+        st.write(next_explanation)
     elif understood == "No":
-            st.write("Let's review this step again with a simpler explanation.")
-            simpler_explanation = assistant.get_response_from_api(f'''Explain AI topic of {level} level in a simpler way. 
-                                                                  The student hasn't understood the step you recently taught well. 
-                                                                  Help them study well in a concise manner.''')
-            st.write(simpler_explanation)
+        st.write("Let's review this step again with a simpler explanation.")
+        simpler_explanation = assistant.get_response_from_api(f'''
+            Explain this AI topic of {level} level again, but in a simpler way.
+            The student hasn't fully understood the previous explanation.
+        ''')
+        st.write(simpler_explanation)
     else:
-            st.write("Please select an option to continue.")
+        st.write("Please select an option to continue.")
     
 # Main function
 def main():
