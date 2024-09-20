@@ -90,7 +90,7 @@ def assessment_dashboard(selected_topic, selected_level, selected_lesson):
             score,
         )
 
-        if score >= 1:
+        if score >= 7:
             st.success(f"**Congratulations! You scored {score}/10**", icon="🔥")
             mycode = "<script>alert('Check your feedback😀 Then, You may move to next lesson. Good Luck! ')</script>"
             components.html(mycode, height=0, width=0)
@@ -118,5 +118,20 @@ def assessment_dashboard(selected_topic, selected_level, selected_lesson):
                 st.divider()
 
         else:
-            st.write(f"You scored {score}/10")
-            st.write(f"Please revise the provided resources and Try again...")
+            st.write(f"You scored {score}/10 😥.")
+            st.markdown(
+                ":red-background[**Please revise the provided resources 📖 and Try again...🔁**]"
+            )
+
+    # option to generate a new quiz
+    if st.button("New Quiz"):
+        with st.spinner("Generating a new quiz..."):
+            assessment_json = generate_assessment_with_retries(
+                selected_topic, selected_level, selected_lesson
+            )
+            store_assessment(
+                selected_topic,
+                f"{selected_level}_{selected_lesson}",
+                json.dumps(assessment_json),
+            )
+            st.rerun()
