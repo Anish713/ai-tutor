@@ -2,7 +2,7 @@ import streamlit as st
 
 # Set page configuration once
 st.set_page_config(
-    page_title="AI Tutor", initial_sidebar_state="collapsed", layout="wide"
+    page_title="AI Tutor", initial_sidebar_state="expanded", layout="wide"
 )
 
 st.title("Welcome !!!")
@@ -14,7 +14,7 @@ if "prev_option" not in st.session_state:
 # Select box to choose between options
 option = st.selectbox(
     "Choose an option:",
-    ["Math QA", "MoA Code Debugging", "MoA AI QA", "Code Debugging", "AI QA"],
+    ["Math Learning & QA", "MoA Code Debugging", "AI QA", "MoA AI QA"],
 )
 
 # If a new option is selected, reset the session state
@@ -23,7 +23,7 @@ if st.session_state.prev_option != option:
     st.session_state.prev_option = option
 
 # Logic to redirect to the chosen page
-if option == "Math QA":
+if option == "Math Learning & QA":
     st.session_state.page = "app1"
 elif option == "MoA Code Debugging":
     st.session_state.page = "app2"

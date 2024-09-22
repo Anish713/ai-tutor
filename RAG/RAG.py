@@ -78,7 +78,6 @@ class rag:
             | StrOutputParser()
         )
 
-
     def ask(self, query: str, context: list = None):
         # Retrieve the most relevant summaries instead of full documents
         if not self.chain:

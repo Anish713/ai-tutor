@@ -1,7 +1,7 @@
 import streamlit as st
-from maths.personalized_learning import course_dashboard
-from maths.initial_assessment import initial_assessment
-from maths.dynamic_content import create_db
+from mathutils.personalized_learning import course_dashboard
+from mathutils.initial_assessment import initial_assessment
+from mathutils.dynamic_content import create_db
 
 
 def math_qa():
@@ -13,6 +13,7 @@ def math_qa():
 def main():
     st.sidebar.title("Math Learning App")
 
+    # Ensure database and tables are created
     create_db()
 
     app_mode = st.sidebar.selectbox(
