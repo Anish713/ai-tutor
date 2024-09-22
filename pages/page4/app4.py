@@ -5,6 +5,8 @@ from langchain.memory import ConversationBufferMemory
 from fpdf import FPDF
 from RAG.RAG import rag
 
+st.session_state.step = 0
+
 # Initialize session state
 def initialize_session_state():
     if "assistants" not in st.session_state:
@@ -105,7 +107,7 @@ def personalized_learning(level):
     Include a brief example if appropriate. The example should be short, simple, and relevant to the concept.
     Make sure to adjust your explanations to the student's level of understanding.
     '''
-    
+
     # Display the prompt for debugging purposes (optional)
     #st.write("Prompt being used for content generation:")
     #st.markdown(f"```{prompt}```")
@@ -115,15 +117,12 @@ def personalized_learning(level):
     context = assistant.get_response_from_api(prompt)
     st.markdown(context)
 
-    
+    # Ensure the "understood" dropdown is shown after the response
+    understood = st.selectbox("Did you understand this step?", ("choose", "Yes", "No"), index=0)
 
-    understood = st.selectbox("Did you understand this step?", ("choose", "Yes", "No"), index = 0)
-
+    # Logic for when the user selects an option
     if understood == "Yes":
-        #yes_ans = context + f"The student has understood the step you recently taught. Now dive deep into this topic and generate another content related to this level topic."
         st.write("Great! Moving to the next step.")
-        next_explanation = assistant.get_response_from_api(f"dive deeper on each topics of {level_description}")
-        st.write(next_explanation)
     elif understood == "No":
         st.write("Let's review this step again with a simpler explanation.")
         simpler_explanation = assistant.get_response_from_api(f'''
@@ -131,8 +130,13 @@ def personalized_learning(level):
             The student hasn't fully understood the previous explanation.
         ''')
         st.write(simpler_explanation)
-    else:
-        st.write("Please select an option to continue.")
+
+    # Regardless of the user's selection, show the "Next Step" button
+    if st.button("Next Step"):
+        next_explanation = assistant.get_response_from_api(f"dive deeper on each topics of {level_description}")
+        st.write(next_explanation)
+        st.session_state.step += 1
+
     
 # Main function
 def main():
