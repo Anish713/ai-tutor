@@ -6,13 +6,15 @@ from fpdf import FPDF
 from RAG.RAG import rag
 
 
+st.session_state.step = 0
+
 # Initialize session state
 def initialize_session_state():
     if "assistants" not in st.session_state:
         st.session_state["assistants"] = {
             "basic": rag("./chroma_db_basic"),
             "intermediate": rag("./chroma_db_intermediate"),
-            "advanced": rag("./chroma_db_advanced"),
+            "advanced": rag("./chroma_db_advanced")
         }
     if "messages" not in st.session_state:
         st.session_state["messages"] = {"basic": [], "intermediate": [], "advanced": []}
@@ -20,15 +22,61 @@ def initialize_session_state():
         st.session_state.memory = {
             "basic": ConversationBufferMemory(),
             "intermediate": ConversationBufferMemory(),
-            "advanced": ConversationBufferMemory(),
+            "advanced": ConversationBufferMemory()
         }
-
 
 # Display the messages for a particular level
 def display_messages(tab):
     for message in st.session_state.messages[tab]:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        with st.chat_message(message['role']):
+            st.markdown(message['content'])
+
+
+def process_local_file(file_path, level):
+    assistant = st.session_state["assistants"][level]
+    if assistant.vector_store is None:
+        if os.path.exists(file_path):
+            assistant.feed(file_path)
+        else:
+            st.error(f"File not found for {level} level. Please check the file path.")
+
+
+@st.cache_resource
+def personalized_learning(level):
+    assistant = st.session_state["assistants"][level]
+    prompt = f'''
+    You are an AI tutor. You are teaching the {level.capitalize()} level of AI.
+    Here's an overview of this level to guide your teaching:
+    Teach the {level} level of the AI topic in a clear and concise manner. Generate about 500 words. 
+    Include a brief example if appropriate. The example should be short, simple, and relevant to the concept.
+    Make sure to adjust your explanations to the student's level of understanding.
+    '''
+    #st.write("Generating detailed content...")
+    context = assistant.get_response_from_api(prompt)
+    return context
+
+def Understood(level, step):
+    assistant = st.session_state["assistants"][level]
+
+    understood = st.radio(f"Did you understand? (Step {step})", ("still reading", "Yes", "No"), key=f"understood_radio_{level}_{step}")
+
+    if understood == "Yes":
+        st.write("Great! Let's dive deeper.")
+        next_content = assistant.get_response_from_api(f'''
+        Explain AI topic of {level} level for step {step}, in detail.
+        The student has fully understood the previous explanation.
+        ''')
+        st.markdown(next_content)
+        Understood(level, step + 1)
+    elif understood == "No":
+        st.write("Let's review this again with a simpler explanation.")
+        simpler_explanation = assistant.get_response_from_api(f'''
+        Explain AI topic of {level} level for step {step}, but in a simpler way.
+        The student hasn't fully understood the previous explanation.
+        ''')
+        st.write(simpler_explanation)
+        Understood(level, step)
+
 
 
 # Process user input and get chatbot response
@@ -42,32 +90,24 @@ def process_input(tab):
 
         st.session_state.messages[tab].append({"role": "user", "content": prompt})
 
-        conversation_history_str = (
-            memory.load_memory_variables({})["history"] if not no_memory else ""
-        )
+        conversation_history_str = memory.load_memory_variables({})["history"] if not no_memory else ""
         conversation_history = []
-
+        
         if conversation_history_str:
             for line in conversation_history_str.split("\n"):
                 if line.startswith("Human:"):
-                    conversation_history.append(
-                        {"role": "user", "content": line.replace("Human: ", "")}
-                    )
+                    conversation_history.append({"role": "user", "content": line.replace("Human: ", "")})
                 elif line.startswith("AI:"):
-                    conversation_history.append(
-                        {"role": "assistant", "content": line.replace("AI: ", "")}
-                    )
+                    conversation_history.append({"role": "assistant", "content": line.replace("AI: ", "")})
 
         if limit_memory and len(conversation_history) > memory_limit * 2:
-            conversation_history = conversation_history[-memory_limit * 2 :]
+            conversation_history = conversation_history[-memory_limit * 2:]
 
         response = assistant.ask(prompt, context=conversation_history)
 
         with st.chat_message("assistant"):
             st.markdown(response)
-        st.session_state.messages[tab].append(
-            {"role": "assistant", "content": response}
-        )
+        st.session_state.messages[tab].append({"role": "assistant", "content": response})
 
         if not no_memory:
             memory.save_context({"input": prompt}, {"output": response})
@@ -79,15 +119,15 @@ def generate_pdf(conversation_history):
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-
+    
     for message in conversation_history:
         role = message["role"].capitalize()
         content = message["content"]
-
+        
         # Set the role
-        pdf.set_font("Arial", "B", size=12)
+        pdf.set_font("Arial", 'B', size=12)
         pdf.cell(200, 10, txt=f"{role}:", ln=True)
-
+        
         # Set the content with UTF-8 characters
         pdf.set_font("Arial", size=12)
         pdf.multi_cell(0, 10, txt=content, align="L")
@@ -98,59 +138,7 @@ def generate_pdf(conversation_history):
     return pdf_output_path
 
 
-# Function to handle Personalized QA (currently blank)
-def personalized_learning(level):
-    assistant = st.session_state["assistants"][level]
-    st.subheader(f"Personalized Learning for {level.capitalize()} Level")
-
-    # Fetch the dynamically generated level description from the assistant's database
-    level_description = assistant.get_level_description()
-
-    # Include the level description in the prompt
-    prompt = f"""
-    You are an AI tutor. You are teaching the {level.capitalize()} level of AI.
-    Here's an overview of this level to guide your teaching:
-
-    "{level_description}"
-
-    Teach the {level} level of the AI topic in a clear and concise manner. Focus on one concept at a time. 
-    Include a brief example if appropriate. The example should be short, simple, and relevant to the concept.
-    Make sure to adjust your explanations to the student's level of understanding.
-    """
-
-    # Display the prompt for debugging purposes (optional)
-    # st.write("Prompt being used for content generation:")
-    # st.markdown(f"```{prompt}```")
-
-    # Generating the personalized content
-    st.write("Generating detailed content...")
-    context = assistant.get_response_from_api(prompt)
-    st.markdown(context)
-
-    understood = st.selectbox(
-        "Did you understand this step?", ("choose", "Yes", "No"), index=0
-    )
-
-    if understood == "Yes":
-        # yes_ans = context + f"The student has understood the step you recently taught. Now dive deep into this topic and generate another content related to this level topic."
-        st.write("Great! Moving to the next step.")
-        next_explanation = assistant.get_response_from_api(
-            f"dive deeper on each topics of {level_description}"
-        )
-        st.write(next_explanation)
-    elif understood == "No":
-        st.write("Let's review this step again with a simpler explanation.")
-        simpler_explanation = assistant.get_response_from_api(
-            f"""
-            Explain this AI topic of {level} level again, but in a simpler way.
-            The student hasn't fully understood the previous explanation.
-        """
-        )
-        st.write(simpler_explanation)
-    else:
-        st.write("Please select an option to continue.")
-
-
+    
 # Main function
 def main():
     st.title("AI Literature Assistant")
@@ -158,10 +146,17 @@ def main():
     # Initialize session state for assistants and messages
     initialize_session_state()
 
+    # Load local files for each level
+    basic_file_path = "D:\\FuseMachine\\DataSet_RAG\\Data_basic.pdf"
+    intermediate_file_path = "D:\\FuseMachine\\DataSet_RAG\\Data_intermediate.pdf"
+    advanced_file_path = "D:\\FuseMachine\\DataSet_RAG\\Data_advance.pdf"
+
+    process_local_file(basic_file_path, "basic")
+    process_local_file(intermediate_file_path, "intermediate")
+    process_local_file(advanced_file_path, "advanced")
+
     # Page selection at the top
-    page = st.selectbox(
-        "Choose a page", ["Home", "Personalized Learning"], key="page_selector"
-    )
+    page = st.selectbox("Choose a page", ["Home", "Personalized Learning"], key="page_selector")
 
     if page == "Home":
         # Sidebar for additional features
@@ -172,24 +167,14 @@ def main():
             # Memory and chat options
             no_memory = st.checkbox("No Memory", value=False)
             limit_memory = st.checkbox("Limit Memory", value=True, disabled=no_memory)
-            memory_limit = st.number_input(
-                "Number of conversations to remember:",
-                min_value=1,
-                max_value=10,
-                value=4,
-                disabled=no_memory or not limit_memory,
-            )
+            memory_limit = st.number_input("Number of conversations to remember:", min_value=1, max_value=10, value=4, disabled=no_memory or not limit_memory)
 
             if st.button("New Chat"):
-                st.session_state.messages = {
-                    "basic": [],
-                    "intermediate": [],
-                    "advanced": [],
-                }
+                st.session_state.messages = {"basic": [], "intermediate": [], "advanced": []}
                 st.session_state.memory = {
                     "basic": ConversationBufferMemory(),
                     "intermediate": ConversationBufferMemory(),
-                    "advanced": ConversationBufferMemory(),
+                    "advanced": ConversationBufferMemory()
                 }
 
             if st.button("Download Chat as PDF"):
@@ -202,41 +187,31 @@ def main():
                         label="Download PDF",
                         data=pdf_file,
                         file_name="conversation_history.pdf",
-                        mime="application/pdf",
+                        mime="application/pdf"
                     )
 
             # File uploader for the selected level
-            selected_level = st.selectbox(
-                "Select Level for Upload",
-                ["basic", "intermediate", "advanced"],
-                key="level_selector",
-            )
-            uploaded_file = st.file_uploader(
-                f"Upload {selected_level.capitalize()} Level File",
-                type=["pdf"],
-                key=f"file_uploader_{selected_level}",
-            )
+            selected_level = st.selectbox("Select Level for Upload", ["basic", "intermediate", "advanced"], key="level_selector")
+            uploaded_file = st.file_uploader(f"Upload {selected_level.capitalize()} Level File", type=["pdf"], key=f"file_uploader_{selected_level}")
 
             if uploaded_file:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tf:
                     tf.write(uploaded_file.getbuffer())
                     file_path = tf.name
-
-                with st.spinner(
-                    f"Uploading and processing {uploaded_file.name} for {selected_level} level"
-                ):
+                
+                with st.spinner(f"Uploading and processing {uploaded_file.name} for {selected_level} level"):
                     st.session_state["assistants"][selected_level].feed(file_path)
-
+                
                 os.remove(file_path)
-                st.success(
-                    f"File uploaded and processed successfully for {selected_level} level!"
-                )
+                st.success(f"File uploaded and processed successfully for {selected_level} level!")
 
         # Display the content based on the selected page
         st.header("Welcome to the AI Literature Assistant")
 
         # Tabs for different levels
         tab1, tab2, tab3 = st.tabs(["Basic", "Intermediate", "Advanced"])
+
+        
 
         with tab1:
             st.header("Basic Mode")
@@ -254,19 +229,31 @@ def main():
             process_input("advanced")
 
     elif page == "Personalized Learning":
-        # Hide the sidebar by not rendering it
-        # st.write("This is a placeholder for the Personalized QA page.")
         st.header("Personalized Learning Page")
-        # st.subheader("Personalized Learning")
+
+
         with st.sidebar:
-            selected_level = st.selectbox(
-                "Select Level for Personalized Learning",
-                ["basic", "intermediate", "advanced"],
-            )
+            button = st.select_slider("", options = ["None", "Start Generating"])
 
-            # Call personalized QA function (currently blank)
-        personalized_learning(selected_level)
+        if button == "Start Generating":
 
+            with st.sidebar:
+                selected_level = st.select_slider("Select Level", options = ["Basic", "Intermediate", "Advanced"])
+
+            if selected_level == "Basic":
+                initial_content = personalized_learning("basic")
+                st.markdown(initial_content)
+                Understood("basic", 1)
+
+            elif selected_level == "Intermediate":
+                initial_content = personalized_learning("intermediate")
+                st.markdown(initial_content)
+                Understood("intermediate", 1)
+
+            elif selected_level == "Advanced":
+                initial_content = personalized_learning("advanced")
+                st.markdown(initial_content)
+                Understood("advanced", 1)
 
 if __name__ == "__main__":
     main()

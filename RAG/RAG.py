@@ -51,10 +51,10 @@ class rag:
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
             "options": {
-               "temperature": 0.7,
+               "temperature": 0.3,
                 "repeat_penalty": 1.0,
                 "seed": 3407,
-                "top_k": 50,
+                "top_k": 10,
                 "top_p": 1.0,
             },
         }
@@ -78,61 +78,22 @@ class rag:
             | StrOutputParser()
         )
 
+
     def ask(self, query: str, context: list = None):
         # Retrieve the most relevant summaries instead of full documents
         if not self.chain:
             return "Could not generate a response. The knowledge base might be empty."
-
-        # Retrieve summaries from the vector store
-        results = self.vector_store.similarity_search(query, k=3)
-        
-        # Prepare context from summaries
-        context_str = ""
-        for doc in results:
-            # Use the summary if available
-            if doc.metadata.get("type") == "summary":
-                context_str += f"\nSummary: {doc.page_content}\n"
-            else:
-                context_str += f"\nDocument: {doc.page_content}\n"
-
-        # Combine query and context for prompt
-        prompt_with_context = f"{context_str}\n\nQuestion: {query}"
-
-        return self.chain.invoke(prompt_with_context)
-
-    
-    
+        return self.chain.invoke(query)
 
     def feed(self, file_path: str):
         # Feed new PDF content, split it, and generate summaries
         chunks = self.csv_obj.split_into_chunks(file_path)
-        summarized_chunks = []
-        
-        # Generate summaries for each chunk and store in vector database
-        for chunk in chunks:
-            summary = self.generate_summary(chunk.page_content)
-            summarized_chunk = {
-                "page_content": summary,
-                "metadata": {"type": "summary", "original_chunk": chunk.page_content}
-            }
-            summarized_chunks.append(summarized_chunk)
-        
-        # Store summaries and original content in the vector database
-        if self.vector_store is None:
-            self.vector_store = self.csv_obj.store_to_vector_database(summarized_chunks)
-        else:
-            self.vector_store.add_documents(summarized_chunks)
-        
+        self.vector_store = self.csv_obj.store_to_vector_database(chunks)
         # Persist the updated vector database and set retriever
         self.vector_store.persist()
         self.set_retriever()
         self.augment()
     
-    def generate_summary(self, content: str) -> str:
-        # Summarize the content
-        summary_prompt = f"Summarize the following content in 3 sentences: {content}"
-        summary = self.summarizer.get_response_from_api(summary_prompt)
-        return summary
 
     def clear(self):
         # Clear the existing vector store by deleting the persistence directory
