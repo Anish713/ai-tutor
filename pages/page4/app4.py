@@ -4,6 +4,9 @@ import os
 from langchain.memory import ConversationBufferMemory
 from fpdf import FPDF
 from RAG.RAG import rag
+import hashlib
+from pathlib import Path
+import json
 
 
 st.session_state.step = 0
@@ -31,7 +34,6 @@ def display_messages(tab):
         with st.chat_message(message['role']):
             st.markdown(message['content'])
 
-
 def process_local_file(file_path, level):
     assistant = st.session_state["assistants"][level]
     if assistant.vector_store is None:
@@ -40,9 +42,36 @@ def process_local_file(file_path, level):
         else:
             st.error(f"File not found for {level} level. Please check the file path.")
 
+# Function to generate a unique key for caching
+def generate_cache_key(level, step):
+    return hashlib.md5(f"{level}_{step}".encode()).hexdigest()
 
+# Function to check if cached content exists
+def get_cached_content(cache_key):
+    cache_dir = Path("content_cache")
+    cache_file = cache_dir / f"{cache_key}.json"
+    if cache_file.exists():
+        with open(cache_file, "r") as f:
+            return json.load(f)
+    return None
+
+# Function to save content to cache
+def save_to_cache(cache_key, content):
+    cache_dir = Path("content_cache")
+    cache_dir.mkdir(exist_ok=True)
+    cache_file = cache_dir / f"{cache_key}.json"
+    with open(cache_file, "w") as f:
+        json.dump(content, f)
+
+# Modified personalized_learning function
 @st.cache_resource
 def personalized_learning(level):
+    cache_key = generate_cache_key(level, 0)
+    cached_content = get_cached_content(cache_key)
+    
+    if cached_content:
+        return cached_content
+
     assistant = st.session_state["assistants"][level]
     prompt = f'''
     You are an AI tutor. You are teaching the {level.capitalize()} level of AI.
@@ -51,33 +80,59 @@ def personalized_learning(level):
     Include a brief example if appropriate. The example should be short, simple, and relevant to the concept.
     Make sure to adjust your explanations to the student's level of understanding.
     '''
-    #st.write("Generating detailed content...")
     context = assistant.get_response_from_api(prompt)
+    
+    save_to_cache(cache_key, context)
     return context
 
+# Modified Understood function
 def Understood(level, step):
     assistant = st.session_state["assistants"][level]
 
-    understood = st.radio(f"Did you understand? (Step {step})", ("still reading", "Yes", "No"), key=f"understood_radio_{level}_{step}")
+    understood = st.radio(f"Did you understand? (Step {step})", 
+                          ("still reading", "Yes", "No"), 
+                          key=f"understood_radio_{level}_{step}")
 
     if understood == "Yes":
         st.write("Great! Let's dive deeper.")
-        next_content = assistant.get_response_from_api(f'''
-        Explain AI topic of {level} level for step {step}, in detail.
-        The student has fully understood the previous explanation.
-        ''')
+        cache_key = generate_cache_key(level, step)
+        cached_content = get_cached_content(cache_key)
+        
+        if cached_content:
+            next_content = cached_content
+        else:
+            next_content = assistant.get_response_from_api(f'''
+            Explain AI topic of {level} level for step {step}, in detail.
+            The student has fully understood the previous explanation.
+            ''')
+            save_to_cache(cache_key, next_content)
+        
         st.markdown(next_content)
-        Understood(level, step + 1)
+        
+        # Instead of recursive call, use a loop
+        return "continue", step + 1
+
     elif understood == "No":
         st.write("Let's review this again with a simpler explanation.")
-        simpler_explanation = assistant.get_response_from_api(f'''
-        Explain AI topic of {level} level for step {step}, but in a simpler way.
-        The student hasn't fully understood the previous explanation.
-        ''')
-        st.write(simpler_explanation)
-        Understood(level, step)
+        cache_key = generate_cache_key(f"{level}_simpler", step)
+        cached_content = get_cached_content(cache_key)
+        
+        if cached_content:
+            simpler_explanation = cached_content
+        else:
+            simpler_explanation = assistant.get_response_from_api(f'''
+            Explain AI topic of {level} level for step {step}, but in a simpler way.
+            The student hasn't fully understood the previous explanation.
+            ''')
+            save_to_cache(cache_key, simpler_explanation)
+        
+        st.markdown(simpler_explanation)
+        
+        # Stay on the same step
+        return "continue", step
 
-
+    else:  # "still reading"
+        return "wait", step
 
 # Process user input and get chatbot response
 def process_input(tab):
@@ -112,7 +167,6 @@ def process_input(tab):
         if not no_memory:
             memory.save_context({"input": prompt}, {"output": response})
 
-
 # Function to generate PDF of the chat history
 def generate_pdf(conversation_history):
     pdf = FPDF()
@@ -137,8 +191,6 @@ def generate_pdf(conversation_history):
     pdf.output(pdf_output_path)
     return pdf_output_path
 
-
-    
 # Main function
 def main():
     st.title("AI Literature Assistant")
@@ -211,8 +263,6 @@ def main():
         # Tabs for different levels
         tab1, tab2, tab3 = st.tabs(["Basic", "Intermediate", "Advanced"])
 
-        
-
         with tab1:
             st.header("Basic Mode")
             display_messages("basic")
@@ -231,29 +281,21 @@ def main():
     elif page == "Personalized Learning":
         st.header("Personalized Learning Page")
 
-
         with st.sidebar:
-            button = st.select_slider("", options = ["None", "Start Generating"])
+            button = st.select_slider("", options=["None", "Start Generating"])
 
         if button == "Start Generating":
-
             with st.sidebar:
-                selected_level = st.select_slider("Select Level", options = ["Basic", "Intermediate", "Advanced"])
+                selected_level = st.select_slider("Select Level", options=["Basic", "Intermediate", "Advanced"])
 
-            if selected_level == "Basic":
-                initial_content = personalized_learning("basic")
-                st.markdown(initial_content)
-                Understood("basic", 1)
+            initial_content = personalized_learning(selected_level.lower())
+            st.markdown(initial_content)
 
-            elif selected_level == "Intermediate":
-                initial_content = personalized_learning("intermediate")
-                st.markdown(initial_content)
-                Understood("intermediate", 1)
+            step = 1
+            status = "continue"
 
-            elif selected_level == "Advanced":
-                initial_content = personalized_learning("advanced")
-                st.markdown(initial_content)
-                Understood("advanced", 1)
+            while status == "continue":
+                status, step = Understood(selected_level.lower(), step)
 
 if __name__ == "__main__":
     main()
