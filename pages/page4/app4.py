@@ -117,6 +117,7 @@ def Understood(level, step):
         cache_key = generate_cache_key(f"{level}_simpler", step)
         cached_content = get_cached_content(cache_key)
         
+        
         if cached_content:
             simpler_explanation = cached_content
         else:
@@ -129,7 +130,7 @@ def Understood(level, step):
         st.markdown(simpler_explanation)
         
         # Stay on the same step
-        return "continue", step
+        return "continue", step + 1
 
     else:  # "still reading"
         return "wait", step
