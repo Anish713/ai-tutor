@@ -17,8 +17,8 @@ class rag:
         self.prompt = PromptTemplate.from_template(
             """
             <s> [INST] You are an assistant for question-answering tasks. Use the following pieces of retrieved context
-            to answer the question. If you don't know the answer, just say that you are not aware. Use three sentences
-            maximum and keep the answer concise. [/INST] </s>
+            to answer the question. If you don't know the answer, just say that you are not aware. Use appropriate number of sentences
+            and keep the answer concise. [/INST] </s>
             [INST] Question: {question}
             Context: {context}
             Answer: [/INST]
@@ -43,6 +43,13 @@ class rag:
                 "score_threshold": 0.5,
             },
         )
+
+    def get_relevent_information(self, query):
+        if not self.retriever:
+            return "No information available."
+        docs = self.retriever.get_relevant_documents(query)
+        return " ".join([doc.page_content for doc in docs])
+
     
     def get_response_from_api(self, prompt):
         # API call to the language model

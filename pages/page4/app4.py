@@ -7,9 +7,19 @@ from RAG.RAG import rag
 import hashlib
 from pathlib import Path
 import json
+import csv 
+import datetime
+
 
 
 st.session_state.step = 0
+
+def save_response(level, question, response):
+    file_name = f"{level}_responses.csv"
+    time_stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(file_name, 'a', newline = '', encoding = 'utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow([time_stamp, question, response])
 
 # Initialize session state
 def initialize_session_state():
@@ -32,7 +42,7 @@ def initialize_session_state():
 def display_messages(tab):
     for message in st.session_state.messages[tab]:
         with st.chat_message(message['role']):
-            st.markdown(message['content'])
+            st.write(message['content'])
 
 def process_local_file(file_path, level):
     assistant = st.session_state["assistants"][level]
@@ -42,11 +52,11 @@ def process_local_file(file_path, level):
         else:
             st.error(f"File not found for {level} level. Please check the file path.")
 
-# Function to generate a unique key for caching
+# New function to generate a unique key for caching
 def generate_cache_key(level, step):
     return hashlib.md5(f"{level}_{step}".encode()).hexdigest()
 
-# Function to check if cached content exists
+# New function to check if cached content exists
 def get_cached_content(cache_key):
     cache_dir = Path("content_cache")
     cache_file = cache_dir / f"{cache_key}.json"
@@ -55,7 +65,7 @@ def get_cached_content(cache_key):
             return json.load(f)
     return None
 
-# Function to save content to cache
+# New function to save content to cache
 def save_to_cache(cache_key, content):
     cache_dir = Path("content_cache")
     cache_dir.mkdir(exist_ok=True)
@@ -73,10 +83,15 @@ def personalized_learning(level):
         return cached_content
 
     assistant = st.session_state["assistants"][level]
+
+    relevant_information = assistant.get_relevent_information(f"Overview of {level}level AI concepts")
+
     prompt = f'''
     You are an AI tutor. You are teaching the {level.capitalize()} level of AI.
     Here's an overview of this level to guide your teaching:
-    Teach the {level} level of the AI topic in a clear and concise manner. Generate about 500 words. 
+    {relevant_information}
+    
+    Based on this information, teach the {level} level of the AI topic in a clear and concise manner. Generate about 500 words. 
     Include a brief example if appropriate. The example should be short, simple, and relevant to the concept.
     Make sure to adjust your explanations to the student's level of understanding.
     '''
@@ -85,8 +100,7 @@ def personalized_learning(level):
     save_to_cache(cache_key, context)
     return context
 
-# Modified Understood function
-def Understood(level, step):
+def Understood(level, step, previous_content):
     assistant = st.session_state["assistants"][level]
 
     understood = st.radio(f"Did you understand? (Step {step})", 
@@ -101,39 +115,49 @@ def Understood(level, step):
         if cached_content:
             next_content = cached_content
         else:
-            next_content = assistant.get_response_from_api(f'''
+
+            relevant_information = assistant.get_relevent_information(f"Advanced {level} level AI concepts")
+
+            prompt = f'''
             Explain AI topic of {level} level for step {step}, in detail.
             The student has fully understood the previous explanation.
-            ''')
+            Use this additional information to guide your explanation:
+            {relevant_information}
+            '''
+
+            next_content = assistant.get_response_from_api(prompt)
             save_to_cache(cache_key, next_content)
         
         st.markdown(next_content)
-        
-        # Instead of recursive call, use a loop
-        return "continue", step + 1
+        return "continue", step + 1, next_content
 
     elif understood == "No":
         st.write("Let's review this again with a simpler explanation.")
         cache_key = generate_cache_key(f"{level}_simpler", step)
         cached_content = get_cached_content(cache_key)
         
-        
         if cached_content:
             simpler_explanation = cached_content
         else:
-            simpler_explanation = assistant.get_response_from_api(f'''
-            Explain AI topic of {level} level for step {step}, but in a simpler way.
-            The student hasn't fully understood the previous explanation.
-            ''')
+
+            relevant_infomation = assistant.get_relevent_information(f"Simple {level} level AI concepts")
+
+            prompt = f'''
+            The student didn't understand the following explanation about the AI topic of {level} level for step {step}:
+            "{previous_content}"
+            Please provide a simpler explanation of the same content, breaking it down further and using more accessible language.
+            Use this additional information to guide your explanation:
+            {relevant_infomation}
+            '''
+
+            simpler_explanation = assistant.get_response_from_api(prompt)
             save_to_cache(cache_key, simpler_explanation)
         
         st.markdown(simpler_explanation)
-        
-        # Stay on the same step
-        return "continue", step + 1
+        return "continue", step + 1, simpler_explanation
 
     else:  # "still reading"
-        return "wait", step
+        return "wait", step + 1, previous_content
 
 # Process user input and get chatbot response
 def process_input(tab):
@@ -160,6 +184,8 @@ def process_input(tab):
             conversation_history = conversation_history[-memory_limit * 2:]
 
         response = assistant.ask(prompt, context=conversation_history)
+
+        save_response(tab, prompt, response)
 
         with st.chat_message("assistant"):
             st.markdown(response)
@@ -200,9 +226,9 @@ def main():
     initialize_session_state()
 
     # Load local files for each level
-    basic_file_path = "D:\\FuseMachine\\DataSet_RAG\\Data_basic.pdf"
-    intermediate_file_path = "D:\\FuseMachine\\DataSet_RAG\\Data_intermediate.pdf"
-    advanced_file_path = "D:\\FuseMachine\\DataSet_RAG\\Data_advance.pdf"
+    basic_file_path = "D:\\FuseMachine\\DataSet_RAG\\FM_Basic.pdf"
+    intermediate_file_path = "D:\\FuseMachine\\DataSet_RAG\\FM_Intermediate.pdf"
+    advanced_file_path = "D:\\FuseMachine\\DataSet_RAG\\FM_Advanced.pdf"
 
     process_local_file(basic_file_path, "basic")
     process_local_file(intermediate_file_path, "intermediate")
@@ -294,9 +320,10 @@ def main():
 
             step = 1
             status = "continue"
+            current_content = initial_content
 
             while status == "continue":
-                status, step = Understood(selected_level.lower(), step)
+                status, step, current_content = Understood(selected_level.lower(), step, current_content)
 
 if __name__ == "__main__":
     main()
