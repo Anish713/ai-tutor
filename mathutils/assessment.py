@@ -21,7 +21,7 @@ DB_PATH = "generated_content.db"
 
 
 def assessment_dashboard(selected_topic, selected_level, selected_lesson):
-    st.header(f"Assessment: {selected_lesson}")
+    st.header(f"MCQs: {selected_lesson}")
 
     # Retrieve assessment from database
     assessment_json = retrieve_assessment(
@@ -29,7 +29,7 @@ def assessment_dashboard(selected_topic, selected_level, selected_lesson):
     )
 
     if assessment_json is None:
-        with st.spinner("Generating assessment..."):
+        with st.spinner("Generating MCQs..."):
             assessment_json = generate_assessment_with_retries(
                 selected_topic, selected_level, selected_lesson
             )
@@ -54,6 +54,7 @@ def assessment_dashboard(selected_topic, selected_level, selected_lesson):
         st.session_state["start_time"] = datetime.datetime.now()
 
     for i, question in enumerate(questions):
+        total_ques = i + 1
         question_key = f"question_{i}_start_time"
         if question_key not in st.session_state:
             st.session_state[question_key] = datetime.datetime.now()
@@ -88,9 +89,12 @@ def assessment_dashboard(selected_topic, selected_level, selected_lesson):
             answers,
             score,
         )
+        threshold_pass_score = 1
 
-        if score >= 1:  # change threshold later
-            st.success(f"**Congratulations! You scored {score}/10**", icon="🔥")
+        if score >= threshold_pass_score:  # change threshold later
+            st.success(
+                f"**Congratulations! You scored {score}/{total_ques}**", icon="🔥"
+            )
             mycode = "<script>alert('Check your feedback😀 Then, You may move to next lesson. Good Luck! ')</script>"
             components.html(mycode, height=0, width=0)
             st.info("Check Feedback below for wrong Answers, if any.")
@@ -105,7 +109,7 @@ def assessment_dashboard(selected_topic, selected_level, selected_lesson):
             for i in wrong_answers:
                 st.markdown(f":red[**Question {i}:**] {questions[i-1]['question']}")
                 st.write(
-                    f"""➡️ You answered: :red[{answers[i-1]}] ❌. Correct Answer is :green[**{questions[i-1]['correct_answer']}**] ✔️"""
+                    f"""➡️ You answered: :red[{answers[i-1]}] ❌. Correct Answer is: :green[**{questions[i-1]['correct_answer']}**] ✔️"""
                 )
                 with st.spinner("Generating Feedback..."):
                     feedback = generate_feedback(
@@ -118,9 +122,9 @@ def assessment_dashboard(selected_topic, selected_level, selected_lesson):
                     st.divider()
 
         else:
-            st.write(f"You scored {score}/10 😥.")
+            st.write(f"You scored {score}/{total_ques} 😥.")
             st.error(
-                ":red-background[**Please revise the provided resources 📖 and Try again...🔁**]"
+                ":red-background[**👀👀You need to study more. Please revise the provided resources 📖 and Try again...🔁**]"
             )
             st.info("Pro Tip: Use Chatbot in sidebar to clear your confusions😎")
 
