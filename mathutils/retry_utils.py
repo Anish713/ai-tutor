@@ -17,9 +17,10 @@ def generate_practice_problems_with_retries(
     max_retries = 1
     temperatures = [0.7, 0.3, 0.9]
     groq_models = [
+        "llama-3.2-11b-text-preview",
+        "Llama-3.1-70b-Versatile",
         "Llama-3.1-8b-Instant",
         "llama3-8b-8192",
-        "Llama-3.1-70b-Versatile",
         "gemma2-9b-it",
         "mixtral-8x7b-32768",
     ]
@@ -118,6 +119,8 @@ def generate_practice_problems_with_retries(
         if attempts >= max_retries * len(temperatures) * len(github_models):
             break
 
+    # st.rerun()
+
     st.error("Maximum retry attempts reached with all models.")
 
     st.error("Failed to generate practice problems after several attempts.")
@@ -128,9 +131,10 @@ def generate_assessment_with_retries(selected_topic, selected_level, selected_le
     max_retries = 1
     temperatures = [0.7, 0.4, 0.9]
     groq_models = [
+        "llama-3.2-11b-text-preview",
+        "Llama-3.1-70b-Versatile",
         "Llama-3.1-8b-Instant",
         "llama3-8b-8192",
-        "Llama-3.1-70b-Versatile",
         "gemma2-9b-it",
         "mixtral-8x7b-32768",
     ]

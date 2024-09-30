@@ -88,6 +88,7 @@ def course_dashboard():
                                 json.dumps(problems_json),
                             )
                             st.sidebar.write("New problems generated")
+                            st.rerun()
                 else:
                     st.sidebar.write("Using cached practice problems")
 
@@ -142,7 +143,7 @@ def course_dashboard():
                             st.empty()
                             st.rerun()
 
-                st.write("### Assessment")
+                st.write("### MCQs")
                 assessment = levels[selected_level].get(
                     "assessment", "No assessment available"
                 )
@@ -151,9 +152,9 @@ def course_dashboard():
                 assessment_expander_key = (
                     f"{selected_topic}_{selected_level}_assessment_expander"
                 )
-                st.session_state.setdefault(assessment_expander_key, True)
+                st.session_state.setdefault(assessment_expander_key, False)
 
-                if st.button(f"Take {assessment}", key="take_assessment"):
+                if st.button(f"Generate MCQs", key="take_assessment"):
                     st.session_state[assessment_expander_key] = True
 
                 if st.session_state[assessment_expander_key]:
