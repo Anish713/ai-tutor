@@ -9,6 +9,9 @@ from .dynamic_content import (
     generate_dynamic_content_github,
     generate_dynamic_content_groq,
 )
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def generate_practice_problems_with_retries(
