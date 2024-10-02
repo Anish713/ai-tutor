@@ -6,3 +6,4 @@ pages/testPages
 */__pycache__
 testMath*/
 */.bin
+__pycache__

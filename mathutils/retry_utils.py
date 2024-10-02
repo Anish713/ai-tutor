@@ -9,6 +9,9 @@ from .dynamic_content import (
     generate_dynamic_content_github,
     generate_dynamic_content_groq,
 )
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def generate_practice_problems_with_retries(
@@ -28,9 +31,9 @@ def generate_practice_problems_with_retries(
 
     def try_generate(model_type, model_name, temperature):
         try:
-            st.write(
-                f"Attempting generation with {model_type} model '{model_name}' at temperature {temperature}"
-            )
+            # st.write(
+            #     f"Attempting generation with {model_type} model '{model_name}' at temperature {temperature}"
+            # )
             problems_response = generate_dynamic_content(
                 f"""Based on the following lesson content, generate 2 simple, 2 intermediate, and 2 complex questions along with their respective answers for the {selected_level} level in the topic {selected_topic}. Strictly use the given JSON Format below as your response format.
                 
@@ -142,9 +145,9 @@ def generate_assessment_with_retries(selected_topic, selected_level, selected_le
 
     def try_generate(model_type, model_name, temperature):
         try:
-            st.write(
-                f"Attempting generation with {model_type} model '{model_name}' at temperature {temperature}"
-            )
+            # st.write(
+            #     f"Attempting generation with {model_type} model '{model_name}' at temperature {temperature}"
+            # )
             assessment_response = generate_dynamic_content(
                 f"""Based on the following lesson content, generate exactly 10 multiple-choice questions along with their respective answers for the {selected_level} level in the topic {selected_topic}. Make sure that only one option is correct while other options are wrong but seems quite similar to the actual option. Strictly use the given JSON Format below as your response format.
                 
@@ -194,9 +197,9 @@ def generate_assessment_with_retries(selected_topic, selected_level, selected_le
         if attempts >= max_retries * len(temperatures) * len(groq_models):
             break
 
-    st.error(
-        "Maximum retry attempts reached with Groq models. Switching to GitHub models."
-    )
+    # st.error(
+    #     "Maximum retry attempts reached with Groq models. Switching to GitHub models."
+    # )
 
     model_index = 0
     attempts = 0
@@ -224,12 +227,12 @@ def generate_assessment_with_retries(selected_topic, selected_level, selected_le
 
 def generate_feedback(question, student_answer, actual_answer):
     # Construct the prompt to generate feedback
-    prompt = f"""Based on the following details:
+    prompt = f"""# Information:
     - Question: {question}
     - Student's Answer: {student_answer}
-    - Correct Answer: {actual_answer}
+    - Correct Answer: {actual_answer}.
     
-, based on the given question, student's answer, and the correct answer, provide constructive feedback explaining the potential misconceptions in the student's answer and why it might be incorrect. Be specific and focus on the mistakes or misunderstandings, offering clear reasoning and guidance for improvement. Additionally, provide a brief solution and hint to the question if necessary. Your feedback should be constructive and insightful, aiming to help the student understand the correct approach and reasoning."""
+Based on the above information, provide a feedback explaining the potential misconceptions in the student's answer and short clarification to right answer. Aim to make feedback as short and useful as possible."""
     # First, try using GitHub models
     try:
         print(f"Generating feedback using GitHub models.")

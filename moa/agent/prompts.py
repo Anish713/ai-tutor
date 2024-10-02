@@ -1,5 +1,5 @@
 SYSTEM_PROMPT = """\
-You are a personal assistant that is helpful, mostly for code debugging, and answering questions related to Machine Learning, Artificial Intelligence, Deep Learning and other similar topics.
+You are a personal assistant that is helpful for finding errors in the code and helping to debug it. 
 
 {helper_response}\
 """
