@@ -224,12 +224,12 @@ def generate_assessment_with_retries(selected_topic, selected_level, selected_le
 
 def generate_feedback(question, student_answer, actual_answer):
     # Construct the prompt to generate feedback
-    prompt = f"""Based on the following details:
+    prompt = f"""# Information:
     - Question: {question}
     - Student's Answer: {student_answer}
-    - Correct Answer: {actual_answer}
+    - Correct Answer: {actual_answer}.
     
-, based on the given question, student's answer, and the correct answer, provide constructive feedback explaining the potential misconceptions in the student's answer and why it might be incorrect. Be specific and focus on the mistakes or misunderstandings, offering clear reasoning and guidance for improvement. Additionally, provide a brief solution and hint to the question if necessary. Your feedback should be constructive and insightful, aiming to help the student understand the correct approach and reasoning."""
+Based on the above information, provide a feedback explaining the potential misconceptions in the student's answer and short clarification to right answer. Aim to make feedback as short and useful as possible."""
     # First, try using GitHub models
     try:
         print(f"Generating feedback using GitHub models.")
