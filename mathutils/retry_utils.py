@@ -28,9 +28,9 @@ def generate_practice_problems_with_retries(
 
     def try_generate(model_type, model_name, temperature):
         try:
-            st.write(
-                f"Attempting generation with {model_type} model '{model_name}' at temperature {temperature}"
-            )
+            # st.write(
+            #     f"Attempting generation with {model_type} model '{model_name}' at temperature {temperature}"
+            # )
             problems_response = generate_dynamic_content(
                 f"""Based on the following lesson content, generate 2 simple, 2 intermediate, and 2 complex questions along with their respective answers for the {selected_level} level in the topic {selected_topic}. Strictly use the given JSON Format below as your response format.
                 
@@ -142,9 +142,9 @@ def generate_assessment_with_retries(selected_topic, selected_level, selected_le
 
     def try_generate(model_type, model_name, temperature):
         try:
-            st.write(
-                f"Attempting generation with {model_type} model '{model_name}' at temperature {temperature}"
-            )
+            # st.write(
+            #     f"Attempting generation with {model_type} model '{model_name}' at temperature {temperature}"
+            # )
             assessment_response = generate_dynamic_content(
                 f"""Based on the following lesson content, generate exactly 10 multiple-choice questions along with their respective answers for the {selected_level} level in the topic {selected_topic}. Make sure that only one option is correct while other options are wrong but seems quite similar to the actual option. Strictly use the given JSON Format below as your response format.
                 
@@ -194,9 +194,9 @@ def generate_assessment_with_retries(selected_topic, selected_level, selected_le
         if attempts >= max_retries * len(temperatures) * len(groq_models):
             break
 
-    st.error(
-        "Maximum retry attempts reached with Groq models. Switching to GitHub models."
-    )
+    # st.error(
+    #     "Maximum retry attempts reached with Groq models. Switching to GitHub models."
+    # )
 
     model_index = 0
     attempts = 0
