@@ -90,7 +90,9 @@ class rag:
         # Retrieve the most relevant summaries instead of full documents
         if not self.chain:
             return "Could not generate a response. The knowledge base might be empty."
-        return self.chain.invoke(query)
+        context_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in context]) if context else ""
+        prompt_with_context = f"{context_str}\n\nQuestion: {query}"
+        return self.chain.invoke(prompt_with_context)
 
     def feed(self, file_path: str):
         # Feed new PDF content, split it, and generate summaries
