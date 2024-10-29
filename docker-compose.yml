@@ -4,8 +4,8 @@ services:
     image: anishest2020/ollama_phi3_gsm8k:v1.0
     ## image: ollama/ollama
     volumes:
-      - "C:/Users/Anish/.ollama:/root/.ollama" ## Change "C:/Users/Anish/.ollama" to your local ollama models path, if any, else comment this.
-      # - ".:/root/.ollama" ## for persistance
+      # - "C:/Users/Anish/.ollama:/root/.ollama" ## Uncomment and Change "C:/Users/Anish/.ollama" to your local ollama models path, if any, else comment this.
+      - ".:/root/.ollama" ## for persistance
     ports:
       - 11434:11434
     deploy:
