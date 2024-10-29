@@ -1,30 +1,38 @@
 # AI Tutor For Students
 
 ## Introduction
+Welcome to the project **AI TUTOR FOR STUDENTS** !
 
-
-- For more: [Check this Repository](https://github.com/Anish713/ai-tutor.git)
-
-## Goals
+### Goals
 To develop a platform where students can ask questions and system clears their confusions with clear answers like a tutor, and hence, AI Tutor. Main goals of this project are as follows:
 1. Mathematical Problem Solving
 2. Code Debugging Assistance
 3. Answering AI related questions.
 
-## Contributors
-1. Anish Shrestha
-2. Shashwot Shrestha
-3. Rachana Subedi
-
 ## Project Architecture
+### System Block Diagram
+![System Block Diagram](pages\assets\images\system_block.png)
 
+### RAG Architecture
+![RAG System Architecture](pages\assets\images\rag.png)
+
+### MoA Architecture
+![Illustration of the Mixture-of-Agents Structure. This example showcases 4 MoA layers with 3 agents in each layer.(Source: https://arxiv.org/pdf/2406.04692) ](pages\assets\images\moa.png)
+
+### Math Q&A Architecture
+![Math Q&A Architecture](pages\assets\images\mathqa.png)
+
+### Finetuning Settings
+![Finetuning Settings](pages\assets\images\training_settings.png)
 
 # Status
 ## Known Issue
 1. System fails to extract JSON response from LLM whenever escape symbol is present in the response. 
+2. Sometimes, complex mathematical equations are not rendered properly.
 
 ## High Level Next Steps
 1. Can integrate with vision models to help students to visualize difficult math concepts.
+2. Optimization of system (mainly RAG component).
 
 
 # Usage
@@ -75,12 +83,23 @@ If you have other packages installed in the environment that are no longer neede
 1. https://huggingface.co/datasets/openai/gsm8k
 2. [Fusemachines Classroom](https://aishikshya.student.fuseclassroom.com/classroom/)
 
-## Artifacts Location
 # Results
 ## Metrics Used
 1. Accuracy
-2. ROGUE
-3. BLEU
-4. Cosine Similarity
-5. 
+2. Word Mover's Distance (WMD)
+3. Cosine Similarity
+4. BLEU score
+5. ROUGE
+
 ## Evaluation Results
+| Metric                           | Finetuned phi3 mini      | Phi3-4bit          | Finetuned phi3.5 mini   |
+|----------------------------------|---------------------------|---------------------|-------------------------|
+| Accuracy                         | 0.741 (1 epoch, 0 shot)  | 0.818 (0 shot)      | 0.7127 (4 epoch, 0 shot) |
+| Word Mover's Distance (WMD)     | 0.4235                    | 0.6370              | N/A                     |
+| Cosine Similarity                | 0.9267                    | 0.8000              | 0.8989                  |
+| BLEU score                      | 0.1322                    | 0.0848              | 0.1220                  |
+| ROUGE-1                         | 0.6252                    | 0.4909              | 0.5449                  |
+| ROUGE-2                         | 0.3966                    | 0.2496              | 0.3361                  |
+| ROUGE-L                         | 0.5239                    | 0.3756              | 0.4152                  |
+| ROUGE-Lsum                      | 0.5906                    | 0.4518              | 0.5094                  |
+
