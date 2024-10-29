@@ -11,19 +11,19 @@ To develop a platform where students can ask questions and system clears their c
 
 ## Project Architecture
 ### System Block Diagram
-![System Block Diagram](pages\assets\images\system_block.png)
+![System Block Diagram](pages/assets/images/system_block.png)
 
 ### RAG Architecture
-![RAG System Architecture](pages\assets\images\rag.png)
+![RAG System Architecture](pages/assets/images/rag.png)
 
 ### MoA Architecture
-![Illustration of the Mixture-of-Agents Structure. This example showcases 4 MoA layers with 3 agents in each layer.(Source: https://arxiv.org/pdf/2406.04692) ](pages\assets\images\moa.png)
+![Illustration of the Mixture-of-Agents Structure. This example showcases 4 MoA layers with 3 agents in each layer.(Source: https://arxiv.org/pdf/2406.04692) ](pages/assets/images/moa.png)
 
 ### Math Q&A Architecture
-![Math Q&A Architecture](pages\assets\images\mathqa.png)
+![Math Q&A Architecture](pages/assets/images/mathqa.png)
 
 ### Finetuning Settings
-![Finetuning Settings](pages\assets\images\training_settings.png)
+![Finetuning Settings](pages/assets/images/training_settings.png)
 
 # Status
 ## Known Issue
