@@ -1,10 +1,11 @@
 */pages/assets/images
-*/*.png
-*/.gitignore
-*/__pycache__
-*/.venv
+**/*.png
+**/.gitignore
+**/__pycache__
+.venv
 */.vscode
-*/.ai-tutor
+.ai-tutor
 ai-tutor-for-students
 */.env
-requirements.in
+**/.bin
+# requirements.in

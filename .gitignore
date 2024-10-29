@@ -6,6 +6,7 @@ pages/testPages
 */__pycache__
 testMath*/
 */.bin
-__pycache__
+**/__pycache__
 .ipynb_checkpoints
 .bin
+**/*.bin

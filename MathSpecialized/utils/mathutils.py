@@ -5,12 +5,13 @@ import streamlit as st
 from dotenv import load_dotenv
 
 ## set API_URL from .env file
-# load_dotenv()
+load_dotenv()
 
-API_URL = "http://localhost:11434/api/chat"
+# API_URL = "http://localhost:11434/api/chat"
 # API_URL = "http://ollama-container:11434/api/chat"
 
-# API_URL = os.getenv("API_URL", "http://localhost:11434/api/chat")
+API_URL = os.getenv("API_URL", "http://localhost:11434/api/chat")
+print("API_URL: ", API_URL)
 HEADERS = {"Content-Type": "application/json"}
 
 
